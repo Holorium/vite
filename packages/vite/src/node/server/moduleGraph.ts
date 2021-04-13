@@ -10,6 +10,7 @@ import { FS_PREFIX } from '../constants'
 import { TransformResult } from './transformRequest'
 import { PluginContainer } from './pluginContainer'
 import { parse as parseUrl } from 'url'
+import { ModuleInfoContainer } from 'types/moduleInfo'
 
 export class ModuleNode {
   /**
@@ -193,5 +194,14 @@ export class ModuleGraph {
       url = pathname + ext + (search || '') + (hash || '')
     }
     return [url, resolvedId]
+  }
+
+  getURlToModulesMapAsJson(): ModuleInfoContainer {
+    const json: any = {}
+    for (const [key, node] of this.urlToModuleMap.entries()) {
+      const { lastHMRTimestamp } = node
+      json[key] = { lastHMRTimestamp }
+    }
+    return json
   }
 }

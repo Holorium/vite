@@ -114,7 +114,7 @@ function updateModules(
   file: string,
   modules: ModuleNode[],
   timestamp: number,
-  { config, ws }: ViteDevServer
+  { config, ws, moduleGraph }: ViteDevServer
 ) {
   const updates: Update[] = []
   const invalidatedModules = new Set<ModuleNode>()
@@ -156,7 +156,8 @@ function updateModules(
 
   ws.send({
     type: 'update',
-    updates
+    updates,
+    moduleInfo: moduleGraph.getURlToModulesMapAsJson()
   })
 }
 

@@ -408,7 +408,14 @@ export function importAnalysisPlugin(config: ResolvedConfig): Plugin {
             )
           }
           needQueryInjectHelper = true
-          str().overwrite(start, end, `__vite__injectQuery(${url}, 'import')`)
+          const depModule = await moduleGraph.ensureEntryFromUrl(url)
+          str().overwrite(
+            start,
+            end,
+            `__vite__injectQuery(${url}, 'import', '${importerModule.url}', ${
+              depModule.lastHMRTimestamp || 0
+            })`
+          )
         }
       }
 

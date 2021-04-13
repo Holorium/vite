@@ -21,6 +21,18 @@ document.querySelector('.qux').addEventListener('click', async () => {
   text('.view', msg)
 })
 
+// mixed static and dynamic
+document.querySelector('.mxd').addEventListener('click', async () => {
+  const path = '../mxd.js'
+  text('.view', get() + 'a')
+  const o = await import(path)
+  text('.view', get() + 'aa' + Object.keys(o).join(', '))
+  const { increment } = await import(path)
+  text('.view', get() + 'b')
+  increment()
+  text('.view', get() + 'c')
+})
+
 // data URLs (`blob:`)
 const code1 = 'export const msg = "blob"'
 const blob = new Blob([code1], { type: 'text/javascript;charset=UTF-8' })

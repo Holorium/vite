@@ -29,3 +29,17 @@ test('should load dynamic import with vars', async () => {
   await page.click('.bar')
   await untilUpdated(() => page.textContent('.view'), 'Bar view', true)
 })
+
+test('should have same reference on static and dynamic import', async () => {
+  await page.waitForTimeout(100000)
+  try {
+    await page.click('.mxd')
+    await untilUpdated(() => page.textContent('.view'), '1', true)
+  } finally {
+    console.log(browserLogs)
+  }
+})
+
+afterEach(() => {
+  console.log(browserLogs)
+})

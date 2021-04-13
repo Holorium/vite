@@ -1,3 +1,5 @@
+import { ModuleInfoContainer } from './moduleInfo'
+
 export type HMRPayload =
   | ConnectedPayload
   | UpdatePayload
@@ -13,6 +15,7 @@ export interface ConnectedPayload {
 export interface UpdatePayload {
   type: 'update'
   updates: Update[]
+  moduleInfo: ModuleInfoContainer
 }
 
 export interface Update {

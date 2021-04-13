@@ -117,6 +117,16 @@ const devHtmlHook: IndexHtmlTransformHook = async (
           src: path.posix.join(base, CLIENT_PUBLIC_PATH)
         },
         injectTo: 'head-prepend'
+      },
+      {
+        tag: 'script',
+        attrs: {
+          type: 'module'
+        },
+        children: `(window || self || global).__viteModuleInfo__ = JSON.parse('${JSON.stringify(
+          server?.moduleGraph.getURlToModulesMapAsJson()
+        )}')`,
+        injectTo: 'head-prepend'
       }
     ]
   }

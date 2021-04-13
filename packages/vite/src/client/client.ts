@@ -1,6 +1,7 @@
 import { ErrorPayload, HMRPayload, Update } from 'types/hmrPayload'
 import { ErrorOverlay, overlayId } from './overlay'
 import './env'
+import { ModuleInfoContainer } from 'types/moduleInfo'
 // injected by the hmr plugin when served
 declare const __ROOT__: string
 declare const __BASE__: string
@@ -46,6 +47,7 @@ async function handleMessage(payload: HMRPayload) {
       setInterval(() => socket.send('ping'), __HMR_TIMEOUT__)
       break
     case 'update':
+      moduleInfo = payload.moduleInfo
       // if this is the first update and there's already an error overlay, it
       // means the page opened with existing server compile error and the whole
       // module script failed to load (since one of the nested imports is 500).
@@ -291,11 +293,15 @@ async function fetchUpdate({ path, acceptedPath, timestamp }: Update) {
       if (disposer) await disposer(dataMap.get(dep))
       const [path, query] = dep.split(`?`)
       try {
+        const params = [
+          !/\.js$/.test(path) && 'import',
+          `t=${timestamp}`,
+          query && `${query}`
+        ].filter(Boolean)
+
         const newMod = await import(
           /* @vite-ignore */
-          base +
-            path.slice(1) +
-            `?import&t=${timestamp}${query ? `&${query}` : ''}`
+          base + path.slice(1) + '?' + params.join('&')
         )
         moduleMap.set(dep, newMod)
       } catch (e) {
@@ -433,10 +439,34 @@ export const createHotContext = (ownerPath: string) => {
   return hot
 }
 
+function resolvePath(basePath: string, relativePath: string) {
+  const resultPathArray = basePath.split('/').slice(0, -1)
+  const relativePathArray: string[] = relativePath.split('/')
+
+  relativePathArray.forEach((entry) => {
+    if (entry === '.') return
+    else if (entry === '..') {
+      if (resultPathArray.length > 0) resultPathArray.pop()
+      else throw new Error('Cannot traverse path')
+    } else {
+      resultPathArray.push(entry)
+    }
+  })
+
+  return resultPathArray.join('/')
+}
+
+const globalSelf = (window || self || global) as any
+let moduleInfo: ModuleInfoContainer = globalSelf.__viteModuleInfo__ || {}
+
 /**
  * urls here are dynamic import() urls that couldn't be statically analyzed
  */
-export function injectQuery(url: string, queryToInject: string) {
+export function injectQuery(
+  url: string,
+  queryToInject: string,
+  importer: string
+) {
   // skip urls that won't be handled by vite
   if (!url.startsWith('.') && !url.startsWith('/')) {
     return url
@@ -445,6 +475,21 @@ export function injectQuery(url: string, queryToInject: string) {
   // can't use pathname from URL since it may be relative like ../
   const pathname = url.replace(/#.*$/, '').replace(/\?.*$/, '')
   const { search, hash } = new URL(url, 'http://vitejs.dev')
+
+  if (/\.js$/.test(pathname)) {
+    // const { fileName } = { fileName: '' }//getSync()[1]
+    if (importer) {
+      const path = resolvePath(importer, pathname)
+      const { lastHMRTimestamp } = moduleInfo[path] || { lastHMRTimestamp: 0 }
+
+      if (lastHMRTimestamp > 0) {
+        return `${pathname}?t=${lastHMRTimestamp}${
+          search ? `&` + search.slice(1) : ''
+        }${hash || ''}`
+      }
+    }
+    return url
+  }
 
   return `${pathname}?${queryToInject}${search ? `&` + search.slice(1) : ''}${
     hash || ''
